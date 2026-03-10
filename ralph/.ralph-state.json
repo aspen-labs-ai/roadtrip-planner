@@ -1,0 +1,75 @@
+{
+  "tasks": [
+    {
+      "id": "001",
+      "status": "completed",
+      "assignedTo": "codex-agent-3",
+      "title": "Establish Backpressure/Test Baseline"
+    },
+    {
+      "id": "002",
+      "status": "completed",
+      "assignedTo": "codex-agent-2",
+      "title": "Implement Dark Theme Tokens and Global Defaults"
+    },
+    {
+      "id": "003",
+      "status": "completed",
+      "assignedTo": "codex-agent-1",
+      "title": "Decompose PlannerApp Into Parallel-Friendly UI Modules"
+    },
+    {
+      "id": "004",
+      "status": "completed",
+      "assignedTo": "codex-agent-4",
+      "title": "Redesign Mobile-First Planner Shell and Day Controls"
+    },
+    {
+      "id": "005",
+      "status": "in_progress",
+      "assignedTo": "codex-agent-5",
+      "title": "Upgrade Timeline Navigation for Touch"
+    },
+    {
+      "id": "006",
+      "status": "pending",
+      "assignedTo": null,
+      "title": "Enhance Drag/Resize Feedback on Activity Cards"
+    },
+    {
+      "id": "007",
+      "status": "in_progress",
+      "assignedTo": "codex-agent-6",
+      "title": "Rebuild Activity Dialog as Dark Glass Bottom Sheet"
+    },
+    {
+      "id": "008",
+      "status": "pending",
+      "assignedTo": null,
+      "title": "Add Loading, Empty, and Success States"
+    },
+    {
+      "id": "009",
+      "status": "pending",
+      "assignedTo": null,
+      "title": "Integrate Framer Motion for Core Transitions"
+    },
+    {
+      "id": "010",
+      "status": "pending",
+      "assignedTo": null,
+      "title": "Add Mobile Playwright Critical + Visual Coverage"
+    }
+  ],
+  "activeAgents": [
+    "codex-agent-6",
+    "codex-agent-5"
+  ],
+  "fileLocks": {
+    "components/activity-dialog.tsx": "codex-agent-6",
+    "app/globals.css": "codex-agent-6",
+    "components/planner/timeline-grid.tsx": "codex-agent-5",
+    "lib/time-utils.ts": "codex-agent-5"
+  },
+  "lastUpdate": "2026-03-10T13:26:07-04:00"
+}

@@ -458,7 +458,14 @@ export function PlannerApp() {
             onActivityResizeEndPointerDown={handleResizeEndPointerDown}
           />
         }
-        dayActions={<DayActions selectedDay={selectedDay} onAddForDay={openCreateDialog} />}
+        dayActions={
+          <DayActions
+            selectedDay={selectedDay}
+            totalDrivePerDay={totalDrivePerDay}
+            onSelectDay={setSelectedDay}
+            onAddForDay={openCreateDialog}
+          />
+        }
         onQuickAdd={() => openCreateDialog(selectedDay)}
       />
 

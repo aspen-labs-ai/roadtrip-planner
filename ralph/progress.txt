@@ -40,3 +40,13 @@
   - `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, and `npm run playwright -- test --grep @critical` all passed.
   - `git pull --rebase` was attempted first and failed due local unstaged changes in the shared parallel workspace.
 - Learned: extracting timeline/card/day-action presentation into typed child modules significantly reduces merge-conflict surface while preserving drag math and editor state flow in a single owner component.
+
+[2026-03-10 13:26 EDT] Task 004 COMPLETE - Redesigned mobile-first planner shell and day controls
+- Updated `components/planner/planner-shell.tsx` with dark glass hero surfaces, accent glow gradients, mobile-first spacing, and a touch-sized floating quick-add control.
+- Rebuilt `components/planner/day-actions.tsx` into explicit day controls: horizontal day-switch tabs with drive summaries, prominent selected-day add CTA, and per-day quick add buttons (all >=44px touch targets).
+- Updated `components/planner-app.tsx` wiring so day controls can both switch selected day and create activities for selected/target days without changing planner data logic.
+- Backpressure execution:
+  - Required `pnpm ...` commands from `ralph/BACKPRESSURE.md` cannot run in this sandbox (`pnpm: command not found`).
+  - Equivalent checks passed via npm: `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run playwright -- test --grep @critical`.
+  - Playwright runner reported sandbox fallback mode (binary not installed), so it validated baseline critical spec/config wiring rather than launching browsers.
+- Learned: separating day selection from add actions in a dedicated mobile control band significantly improves touch ergonomics while preserving existing timeline drag/edit behavior.
