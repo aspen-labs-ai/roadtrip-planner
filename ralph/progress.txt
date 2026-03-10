@@ -50,3 +50,16 @@
   - Equivalent checks passed via npm: `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, `npm run playwright -- test --grep @critical`.
   - Playwright runner reported sandbox fallback mode (binary not installed), so it validated baseline critical spec/config wiring rather than launching browsers.
 - Learned: separating day selection from add actions in a dedicated mobile control band significantly improves touch ergonomics while preserving existing timeline drag/edit behavior.
+
+[2026-03-10 13:28 EDT] Task 005 COMPLETE - Upgraded timeline navigation for touch (swipe + zoom)
+- Added timeline scale primitives in `lib/time-utils.ts` (`TIMELINE_*_PIXELS_PER_MINUTE`, clamp/normalize helpers, and shared timeline pixel/height converters).
+- Updated `components/planner-app.tsx` to own `timelinePixelsPerMinute` state and use it in drag delta->minute conversion so drag/resize math stays accurate at any zoom level.
+- Reworked `components/planner/timeline-grid.tsx` with touch-focused navigation:
+  - horizontal swipe-friendly container with snap alignment and selected-day sync while scrolling,
+  - two-finger pinch zoom and ctrl+wheel zoom handling,
+  - explicit zoom controls (minus/reset/plus) with bounded scale,
+  - activity/time-grid rendering driven by dynamic pixels-per-minute.
+- Backpressure execution:
+  - Exact commands from `ralph/BACKPRESSURE.md` attempted via `pnpm ...` all failed here because `pnpm` is not installed (`pnpm: command not found`).
+  - Equivalent local checks passed: `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, and `npm run playwright -- test --grep @critical` (runner fallback baseline checks in this sandbox).
+- Learned: keeping timeline zoom in shared math utilities plus app-owned scale state avoids drift between render positioning and pointer drag conversion.

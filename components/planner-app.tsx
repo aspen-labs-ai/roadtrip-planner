@@ -5,11 +5,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { ActivityDialog } from '@/components/activity-dialog'
 import { DayActions } from '@/components/planner/day-actions'
 import { PlannerShell } from '@/components/planner/planner-shell'
-import {
-  TIMELINE_PIXELS_PER_MINUTE,
-  TIMELINE_TIME_GUTTER_WIDTH,
-  TimelineGrid,
-} from '@/components/planner/timeline-grid'
+import { TIMELINE_TIME_GUTTER_WIDTH, TimelineGrid } from '@/components/planner/timeline-grid'
 import { driveKey, estimateDriveMinutes } from '@/lib/drive-time'
 import {
   clamp,
@@ -17,6 +13,7 @@ import {
   formatDuration,
   MIN_ACTIVITY_DURATION,
   snapToStep,
+  TIMELINE_BASE_PIXELS_PER_MINUTE,
   TIMELINE_END_MINUTE,
   TIMELINE_START_MINUTE,
 } from '@/lib/time-utils'
@@ -111,6 +108,7 @@ export function PlannerApp() {
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [driveTimes, setDriveTimes] = useState<Record<string, number>>({})
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [timelinePixelsPerMinute, setTimelinePixelsPerMinute] = useState(TIMELINE_BASE_PIXELS_PER_MINUTE)
 
   const columnsRef = useRef<HTMLDivElement>(null)
   const suppressClickRef = useRef<string | null>(null)
@@ -241,7 +239,7 @@ export function PlannerApp() {
 
       event.preventDefault()
       const deltaY = event.clientY - drag.originY
-      const snappedDeltaMinutes = snapToStep(deltaY / TIMELINE_PIXELS_PER_MINUTE, DRAG_SNAP_MINUTES)
+      const snappedDeltaMinutes = snapToStep(deltaY / timelinePixelsPerMinute, DRAG_SNAP_MINUTES)
 
       if (Math.abs(deltaY) >= 4) {
         drag.moved = true
@@ -323,7 +321,7 @@ export function PlannerApp() {
       window.removeEventListener('pointerup', handlePointerStop)
       window.removeEventListener('pointercancel', handlePointerStop)
     }
-  }, [])
+  }, [timelinePixelsPerMinute])
 
   const selectedActivity = useMemo(() => {
     if (!editor?.activityId) {
@@ -447,11 +445,13 @@ export function PlannerApp() {
           <TimelineGrid
             columnsRef={columnsRef}
             selectedDay={selectedDay}
+            timelinePixelsPerMinute={timelinePixelsPerMinute}
             totalDrivePerDay={totalDrivePerDay}
             groupedActivities={groupedActivities}
             driveMinutesIntoActivity={driveMinutesIntoActivity}
             draggingId={draggingId}
             onSelectDay={setSelectedDay}
+            onTimelineScaleChange={setTimelinePixelsPerMinute}
             onActivityOpen={handleOpenActivity}
             onActivityMovePointerDown={handleMovePointerDown}
             onActivityResizeStartPointerDown={handleResizeStartPointerDown}

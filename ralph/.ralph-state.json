@@ -26,7 +26,7 @@
     },
     {
       "id": "005",
-      "status": "in_progress",
+      "status": "completed",
       "assignedTo": "codex-agent-5",
       "title": "Upgrade Timeline Navigation for Touch"
     },
@@ -62,14 +62,11 @@
     }
   ],
   "activeAgents": [
-    "codex-agent-6",
-    "codex-agent-5"
+    "codex-agent-6"
   ],
   "fileLocks": {
     "components/activity-dialog.tsx": "codex-agent-6",
-    "app/globals.css": "codex-agent-6",
-    "components/planner/timeline-grid.tsx": "codex-agent-5",
-    "lib/time-utils.ts": "codex-agent-5"
+    "app/globals.css": "codex-agent-6"
   },
-  "lastUpdate": "2026-03-10T13:26:07-04:00"
+  "lastUpdate": "2026-03-10T13:28:26-04:00"
 }

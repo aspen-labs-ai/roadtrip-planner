@@ -12,6 +12,10 @@ export const HOUR_MARKERS = Array.from(
 
 export const MIN_ACTIVITY_DURATION = 30
 export const DRAG_SNAP_MINUTES = 15
+export const TIMELINE_BASE_PIXELS_PER_MINUTE = 1
+export const TIMELINE_MIN_PIXELS_PER_MINUTE = 0.75
+export const TIMELINE_MAX_PIXELS_PER_MINUTE = 2
+export const TIMELINE_ZOOM_STEP = 0.15
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value))
@@ -60,4 +64,20 @@ export function formatDuration(totalMinutes: number): string {
   }
 
   return `${hours}h ${minutes}m`
+}
+
+export function clampTimelinePixelsPerMinute(value: number): number {
+  return clamp(value, TIMELINE_MIN_PIXELS_PER_MINUTE, TIMELINE_MAX_PIXELS_PER_MINUTE)
+}
+
+export function normalizeTimelinePixelsPerMinute(value: number): number {
+  return Math.round(clampTimelinePixelsPerMinute(value) * 100) / 100
+}
+
+export function timelinePixelsForMinute(minutesFromMidnight: number, pixelsPerMinute: number): number {
+  return (minutesFromMidnight - TIMELINE_START_MINUTE) * pixelsPerMinute
+}
+
+export function timelineHeight(pixelsPerMinute: number): number {
+  return (TIMELINE_END_MINUTE - TIMELINE_START_MINUTE) * pixelsPerMinute
 }
