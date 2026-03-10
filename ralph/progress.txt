@@ -28,3 +28,15 @@
   - `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, and `npm run playwright -- test --grep @critical` all passed.
   - `git pull --rebase` was attempted first, but remote access failed (`Could not resolve host: github.com`).
 - Learned: Next.js 16 rejects `next lint` CLI usage in this setup; direct ESLint invocation is required for stable lint backpressure.
+
+[2026-03-10 12:48 EDT] Task 003 COMPLETE - Decomposed PlannerApp into modular UI components
+- Added `components/planner/planner-shell.tsx` to own shell/hero/summary/fab presentation.
+- Added `components/planner/timeline-grid.tsx` to render day headers, time grid, and activity placement.
+- Added `components/planner/activity-card.tsx` to encapsulate activity card visuals, keyboard open behavior, and resize handles.
+- Added `components/planner/day-actions.tsx` for day-specific add controls.
+- Refactored `components/planner-app.tsx` to retain state, persistence, computed selectors, drive-time hydration, and drag/resize/edit handlers while delegating rendering to new modules.
+- Backpressure execution in this environment:
+  - `pnpm` commands are unavailable (`pnpm: command not found`), so equivalent `npm run ...` checks were run.
+  - `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, and `npm run playwright -- test --grep @critical` all passed.
+  - `git pull --rebase` was attempted first and failed due local unstaged changes in the shared parallel workspace.
+- Learned: extracting timeline/card/day-action presentation into typed child modules significantly reduces merge-conflict surface while preserving drag math and editor state flow in a single owner component.

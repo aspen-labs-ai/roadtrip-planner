@@ -1,15 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 
 import { ActivityDialog } from '@/components/activity-dialog'
+import { DayActions } from '@/components/planner/day-actions'
+import { PlannerShell } from '@/components/planner/planner-shell'
+import {
+  TIMELINE_PIXELS_PER_MINUTE,
+  TIMELINE_TIME_GUTTER_WIDTH,
+  TimelineGrid,
+} from '@/components/planner/timeline-grid'
 import { driveKey, estimateDriveMinutes } from '@/lib/drive-time'
 import {
   clamp,
   DRAG_SNAP_MINUTES,
-  formatClock,
   formatDuration,
-  HOUR_MARKERS,
   MIN_ACTIVITY_DURATION,
   snapToStep,
   TIMELINE_END_MINUTE,
@@ -22,10 +27,8 @@ import {
   SAMPLE_ACTIVITIES,
   STORAGE_KEY,
 } from '@/lib/trip-data'
-import { Activity, ActivityDraft, ActivityType, DayKey, DAY_LABELS, DAY_ORDER } from '@/types/trip'
+import { Activity, ActivityDraft, DayKey, DAY_ORDER } from '@/types/trip'
 
-const PIXELS_PER_MINUTE = 1
-const TIMELINE_HEIGHT = (TIMELINE_END_MINUTE - TIMELINE_START_MINUTE) * PIXELS_PER_MINUTE
 const QUICK_ADD_DURATION = 90
 
 type EditorState = {
@@ -50,32 +53,6 @@ type DragMeta = {
   initialDayIndex: number
   dayWidth: number
   moved: boolean
-}
-
-const TYPE_STYLES: Record<
-  ActivityType,
-  { card: string; badge: string; label: string }
-> = {
-  travel: {
-    card: 'bg-amber-100/95 border-amber-300 text-amber-950',
-    badge: 'bg-amber-500',
-    label: 'Travel',
-  },
-  food: {
-    card: 'bg-rose-100/95 border-rose-300 text-rose-950',
-    badge: 'bg-rose-500',
-    label: 'Food',
-  },
-  lodging: {
-    card: 'bg-sky-100/95 border-sky-300 text-sky-950',
-    badge: 'bg-sky-500',
-    label: 'Lodging',
-  },
-  activity: {
-    card: 'bg-emerald-100/95 border-emerald-300 text-emerald-950',
-    badge: 'bg-emerald-500',
-    label: 'Activity',
-  },
 }
 
 function generateId(): string {
@@ -119,6 +96,14 @@ function nextSlotForDay(day: DayKey, activities: Activity[]): { start: number; e
   }
 }
 
+function toEditorSeed(activity: Activity) {
+  return {
+    day: activity.day,
+    start: activity.start,
+    end: activity.end,
+  }
+}
+
 export function PlannerApp() {
   const [activities, setActivities] = useState<Activity[]>(SAMPLE_ACTIVITIES)
   const [isHydrated, setIsHydrated] = useState(false)
@@ -127,7 +112,7 @@ export function PlannerApp() {
   const [driveTimes, setDriveTimes] = useState<Record<string, number>>({})
   const [draggingId, setDraggingId] = useState<string | null>(null)
 
-  const columnsRef = useRef<HTMLDivElement | null>(null)
+  const columnsRef = useRef<HTMLDivElement>(null)
   const suppressClickRef = useRef<string | null>(null)
   const dragRef = useRef<DragMeta | null>(null)
 
@@ -256,7 +241,7 @@ export function PlannerApp() {
 
       event.preventDefault()
       const deltaY = event.clientY - drag.originY
-      const snappedDeltaMinutes = snapToStep(deltaY / PIXELS_PER_MINUTE, DRAG_SNAP_MINUTES)
+      const snappedDeltaMinutes = snapToStep(deltaY / TIMELINE_PIXELS_PER_MINUTE, DRAG_SNAP_MINUTES)
 
       if (Math.abs(deltaY) >= 4) {
         drag.moved = true
@@ -362,6 +347,14 @@ export function PlannerApp() {
     })
   }
 
+  const openEditDialog = (activity: Activity) => {
+    setEditor({
+      mode: 'edit',
+      activityId: activity.id,
+      seed: toEditorSeed(activity),
+    })
+  }
+
   const saveActivity = (draft: ActivityDraft, existingId: string | null) => {
     const normalized = normalizeDraft(draft)
 
@@ -396,14 +389,14 @@ export function PlannerApp() {
     setEditor(null)
   }
 
-  const startDrag = (event: React.PointerEvent<HTMLElement>, activity: Activity, mode: DragMode) => {
+  const startDrag = (event: ReactPointerEvent<HTMLElement>, activity: Activity, mode: DragMode) => {
     if (mode !== 'move') {
       event.preventDefault()
     }
     event.stopPropagation()
 
     const totalWidth = columnsRef.current?.getBoundingClientRect().width ?? 1130
-    const columnWidth = (totalWidth - 72) / DAY_ORDER.length
+    const columnWidth = (totalWidth - TIMELINE_TIME_GUTTER_WIDTH) / DAY_ORDER.length
 
     dragRef.current = {
       activityId: activity.id,
@@ -420,230 +413,54 @@ export function PlannerApp() {
     setDraggingId(activity.id)
   }
 
+  const handleOpenActivity = (activity: Activity) => {
+    if (suppressClickRef.current === activity.id) {
+      suppressClickRef.current = null
+      return
+    }
+
+    openEditDialog(activity)
+  }
+
+  const handleMovePointerDown = (event: ReactPointerEvent<HTMLElement>, activity: Activity) => {
+    startDrag(event, activity, 'move')
+  }
+
+  const handleResizeStartPointerDown = (event: ReactPointerEvent<HTMLElement>, activity: Activity) => {
+    startDrag(event, activity, 'resize-start')
+  }
+
+  const handleResizeEndPointerDown = (event: ReactPointerEvent<HTMLElement>, activity: Activity) => {
+    startDrag(event, activity, 'resize-end')
+  }
+
   const totalActivities = activities.length
   const totalTripDrive = DAY_ORDER.reduce((sum, day) => sum + totalDrivePerDay[day], 0)
 
   return (
-    <main className="relative min-h-screen bg-[radial-gradient(circle_at_20%_20%,#dff5ff,transparent_40%),radial-gradient(circle_at_80%_0%,#ffe8d6,transparent_35%),linear-gradient(180deg,#f7fbff_0%,#eef4fb_100%)] px-3 pb-24 pt-5 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-[1400px] space-y-5">
-        <section className="rounded-3xl border border-white/70 bg-white/80 p-4 shadow-[0_30px_80px_rgba(15,23,42,0.09)] backdrop-blur md:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-700">Roadtrip Planner</p>
-              <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">Chicago to Montreal</h1>
-              <p className="max-w-2xl text-sm text-slate-600 md:text-base">
-                Visual timeline for Tue-Sun planning, quick edits, and automatic drive-time rollups.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                {ROUTE_STOPS.map((stop, index) => (
-                  <span
-                    key={stop}
-                    className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600"
-                  >
-                    {stop}
-                    {index < ROUTE_STOPS.length - 1 ? <span className="ml-2 text-slate-400">→</span> : null}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid w-full grid-cols-2 gap-3 sm:w-auto sm:min-w-[320px]">
-              <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Activities</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{totalActivities}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Drive Time</p>
-                <p className="mt-1 text-2xl font-semibold text-slate-900">{formatDuration(totalTripDrive)}</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-white/70 bg-white/85 shadow-[0_25px_70px_rgba(15,23,42,0.08)] backdrop-blur">
-          <div className="overflow-auto rounded-3xl">
-            <div className="min-w-[980px]">
-              <div className="sticky top-0 z-20 grid grid-cols-[72px_repeat(6,minmax(150px,1fr))] border-b border-slate-200 bg-slate-50/95 backdrop-blur">
-                <div className="border-r border-slate-200 px-2 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Time
-                </div>
-
-                {DAY_ORDER.map((day) => {
-                  const isActiveDay = day === selectedDay
-
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => setSelectedDay(day)}
-                      className={`border-r border-slate-200 px-3 py-3 text-left transition last:border-r-0 ${
-                        isActiveDay ? 'bg-cyan-50' : 'hover:bg-slate-100'
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-slate-900">{DAY_LABELS[day]}</p>
-                      <p className="text-xs text-slate-500">Drive {formatDuration(totalDrivePerDay[day])}</p>
-                    </button>
-                  )
-                })}
-              </div>
-
-              <div className="grid grid-cols-[72px_repeat(6,minmax(150px,1fr))]" ref={columnsRef}>
-                <div className="relative border-r border-slate-200 bg-slate-50/70" style={{ height: TIMELINE_HEIGHT }}>
-                  {HOUR_MARKERS.map((hour) => {
-                    const top = (hour * 60 - TIMELINE_START_MINUTE) * PIXELS_PER_MINUTE
-                    const label = formatClock(hour * 60)
-
-                    return (
-                      <div
-                        key={hour}
-                        className="absolute left-0 right-0 border-t border-slate-200"
-                        style={{ top }}
-                      >
-                        <span className="absolute -top-2 right-1 text-[10px] font-medium text-slate-500">
-                          {label}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {DAY_ORDER.map((day) => (
-                  <div key={day} className="relative border-r border-slate-200 last:border-r-0" style={{ height: TIMELINE_HEIGHT }}>
-                    {HOUR_MARKERS.map((hour) => {
-                      const top = (hour * 60 - TIMELINE_START_MINUTE) * PIXELS_PER_MINUTE
-                      return (
-                        <div
-                          key={`${day}-${hour}`}
-                          className="pointer-events-none absolute left-0 right-0 border-t border-slate-200/70"
-                          style={{ top }}
-                        />
-                      )
-                    })}
-
-                    {groupedActivities[day].map((activity) => {
-                      const top = (activity.start - TIMELINE_START_MINUTE) * PIXELS_PER_MINUTE
-                      const height = Math.max(
-                        MIN_ACTIVITY_DURATION * PIXELS_PER_MINUTE,
-                        (activity.end - activity.start) * PIXELS_PER_MINUTE,
-                      )
-                      const style = TYPE_STYLES[activity.type]
-                      const driveInto = driveMinutesIntoActivity[activity.id]
-                      const isDragging = draggingId === activity.id
-
-                      return (
-                        <div
-                          key={activity.id}
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => {
-                            if (suppressClickRef.current === activity.id) {
-                              suppressClickRef.current = null
-                              return
-                            }
-
-                            setEditor({
-                              mode: 'edit',
-                              activityId: activity.id,
-                              seed: {
-                                day: activity.day,
-                                start: activity.start,
-                                end: activity.end,
-                              },
-                            })
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter' || event.key === ' ') {
-                              event.preventDefault()
-                              setEditor({
-                                mode: 'edit',
-                                activityId: activity.id,
-                                seed: {
-                                  day: activity.day,
-                                  start: activity.start,
-                                  end: activity.end,
-                                },
-                              })
-                            }
-                          }}
-                          onPointerDown={(event) => startDrag(event, activity, 'move')}
-                          className={`absolute left-1 right-1 rounded-xl border px-2 py-1 shadow-sm transition ${style.card} ${
-                            isDragging ? 'z-20 scale-[1.01] shadow-lg' : 'z-10 hover:shadow-md'
-                          } touch-none`}
-                          style={{ top, height }}
-                        >
-                          <button
-                            type="button"
-                            onPointerDown={(event) => startDrag(event, activity, 'resize-start')}
-                            onClick={(event) => event.stopPropagation()}
-                            className="absolute left-0 right-0 top-0 h-1.5 cursor-ns-resize rounded-t-xl bg-slate-500/30"
-                            aria-label="Resize start"
-                          />
-
-                          <div className="mt-1.5 flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                                {style.label}
-                              </p>
-                              <p className="truncate text-sm font-semibold leading-tight">{activity.name}</p>
-                            </div>
-                            <span className={`mt-0.5 h-2.5 w-2.5 rounded-full ${style.badge}`} />
-                          </div>
-
-                          <p className="mt-1 truncate text-xs font-medium">
-                            {formatClock(activity.start)} - {formatClock(activity.end)}
-                          </p>
-                          <p className="truncate text-xs text-slate-700">{activity.location}</p>
-
-                          {driveInto !== undefined ? (
-                            <p className="mt-1 truncate text-[11px] font-medium text-slate-700">
-                              Drive from previous: {formatDuration(driveInto)}
-                            </p>
-                          ) : null}
-
-                          <button
-                            type="button"
-                            onPointerDown={(event) => startDrag(event, activity, 'resize-end')}
-                            onClick={(event) => event.stopPropagation()}
-                            className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize rounded-b-xl bg-slate-500/30"
-                            aria-label="Resize end"
-                          />
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <div className="grid grid-cols-2 gap-2 rounded-2xl border border-white/70 bg-white/70 p-3 backdrop-blur sm:grid-cols-3 md:grid-cols-6">
-          {DAY_ORDER.map((day) => (
-            <button
-              key={day}
-              type="button"
-              onClick={() => openCreateDialog(day)}
-              className={`rounded-xl border px-3 py-2 text-left transition ${
-                selectedDay === day
-                  ? 'border-cyan-400 bg-cyan-50 text-cyan-800'
-                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <p className="text-sm font-semibold">{DAY_LABELS[day]}</p>
-              <p className="text-xs">Add activity</p>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => openCreateDialog(selectedDay)}
-        className="fixed bottom-5 right-5 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-3xl text-white shadow-[0_18px_35px_rgba(15,23,42,0.35)] transition hover:scale-105 hover:bg-slate-800"
-        aria-label="Quick add activity"
-      >
-        +
-      </button>
+    <>
+      <PlannerShell
+        routeStops={ROUTE_STOPS}
+        totalActivities={totalActivities}
+        totalTripDrive={formatDuration(totalTripDrive)}
+        timeline={
+          <TimelineGrid
+            columnsRef={columnsRef}
+            selectedDay={selectedDay}
+            totalDrivePerDay={totalDrivePerDay}
+            groupedActivities={groupedActivities}
+            driveMinutesIntoActivity={driveMinutesIntoActivity}
+            draggingId={draggingId}
+            onSelectDay={setSelectedDay}
+            onActivityOpen={handleOpenActivity}
+            onActivityMovePointerDown={handleMovePointerDown}
+            onActivityResizeStartPointerDown={handleResizeStartPointerDown}
+            onActivityResizeEndPointerDown={handleResizeEndPointerDown}
+          />
+        }
+        dayActions={<DayActions selectedDay={selectedDay} onAddForDay={openCreateDialog} />}
+        onQuickAdd={() => openCreateDialog(selectedDay)}
+      />
 
       <ActivityDialog
         isOpen={Boolean(editor)}
@@ -660,6 +477,6 @@ export function PlannerApp() {
         onDelete={deleteActivity}
         onClose={() => setEditor(null)}
       />
-    </main>
+    </>
   )
 }
